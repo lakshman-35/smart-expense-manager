@@ -1,0 +1,18 @@
+{
+  "name": "Smart Expense Tracker",
+  "short_name": "SET",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "description": "AI-powered personal finance management",
+  "icons": [
+    {
+      "src": "/wallet.svg",
+      "sizes": "256x256",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
+
