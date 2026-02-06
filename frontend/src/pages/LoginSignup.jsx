@@ -63,7 +63,7 @@ const LoginSignup = () => {
           transition={{ duration: 0.6 }}
           className="bg-white dark:bg-gray-800 shadow-2xl rounded-2xl p-8 backdrop-blur-lg"
         >
-          {/* Back link */}
+          
           <div className="flex justify-start mb-4">
             <Link
               to="/"

@@ -54,7 +54,7 @@ const Transactions = () => {
     fetchTransactions();
   }, [filters, pagination.current]);
 
-  // Initialize modal form only when opening modal
+  
   useEffect(() => {
     if (showModal && !editingTransaction) {
       // Only reset form for new transactions, and only once

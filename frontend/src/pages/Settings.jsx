@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { 
-  Settings as SettingsIcon, 
-  Bell, 
-  Shield, 
-  Palette, 
+import {
+  Settings as SettingsIcon,
+  Bell,
+  Shield,
+  Palette,
   Globe,
   Database,
   Download,
@@ -26,14 +26,14 @@ const Settings = () => {
   const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('general');
   const [loading, setLoading] = useState(false);
-  
+
   const [settings, setSettings] = useState({
     // General Settings
     language: 'en',
     currency: 'INR',
     dateFormat: 'dd/mm/yyyy',
     timeFormat: '24h',
-    
+
     // Notification Settings
     emailNotifications: true,
     pushNotifications: true,
@@ -41,12 +41,12 @@ const Settings = () => {
     goalReminders: true,
     weeklyReports: true,
     monthlyReports: true,
-    
+
     // Privacy Settings
     dataSharing: false,
     analytics: true,
     crashReports: true,
-    
+
     // Security Settings
     twoFactorAuth: false,
     biometric: false,
@@ -57,12 +57,29 @@ const Settings = () => {
     if (user) {
       setSettings(prev => ({
         ...prev,
+        // General
+        language: user.language || 'en',
         currency: user.currency || 'INR',
-        emailNotifications: user.notifications?.budget ?? true,
+        dateFormat: user.dateFormat || 'dd/mm/yyyy',
+        timeFormat: user.timeFormat || '24h',
+
+        // Notifications
+        emailNotifications: user.notifications?.email ?? true,
+        pushNotifications: user.notifications?.push ?? true,
         budgetAlerts: user.notifications?.budget ?? true,
         goalReminders: user.notifications?.goals ?? true,
         weeklyReports: user.notifications?.reports ?? true,
-        monthlyReports: user.notifications?.reports ?? true
+        monthlyReports: user.notifications?.reports ?? true,
+
+        // Privacy
+        dataSharing: user.privacy?.dataSharing ?? false,
+        analytics: user.privacy?.analytics ?? true,
+        crashReports: user.privacy?.crashReports ?? true,
+
+        // Security
+        twoFactorAuth: user.security?.twoFactorAuth ?? false,
+        biometric: user.security?.biometric ?? false,
+        sessionTimeout: user.security?.sessionTimeout || '30'
       }));
     }
   }, [user]);
@@ -96,17 +113,32 @@ const Settings = () => {
   const handleSave = async () => {
     try {
       setLoading(true);
-      
+
       // Update user profile with relevant settings
       const profileData = {
         currency: settings.currency,
+        language: settings.language,
+        dateFormat: settings.dateFormat,
+        timeFormat: settings.timeFormat,
         notifications: {
+          email: settings.emailNotifications,
+          push: settings.pushNotifications,
           budget: settings.budgetAlerts,
           goals: settings.goalReminders,
           reports: settings.weeklyReports || settings.monthlyReports
+        },
+        privacy: {
+          dataSharing: settings.dataSharing,
+          analytics: settings.analytics,
+          crashReports: settings.crashReports
+        },
+        security: {
+          twoFactorAuth: settings.twoFactorAuth,
+          biometric: settings.biometric,
+          sessionTimeout: settings.sessionTimeout
         }
       };
-      
+
       const result = await updateProfile(profileData);
       if (result.success) {
         toast.success('Settings saved successfully');
@@ -118,18 +150,60 @@ const Settings = () => {
     }
   };
 
-  const exportData = () => {
-    toast.success('Data export initiated. You will receive an email shortly.');
+
+
+
+
+  const exportData = async () => {
+    try {
+      toast.loading('Exporting data...');
+      const response = await authService.exportData();
+      toast.dismiss();
+
+      if (response.success && response.data) {
+        const dataStr = JSON.stringify(response.data, null, 2);
+        const blob = new Blob([dataStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `expense-tracker-backup-${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        toast.success('Data exported successfully');
+      }
+    } catch (error) {
+      toast.dismiss();
+      toast.error('Failed to export data');
+    }
   };
 
   const importData = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
       const file = e.target.files[0];
       if (file) {
-        toast.success('Data import started. Please wait...');
+        const reader = new FileReader();
+        reader.onload = async (event) => {
+          try {
+            toast.loading('Importing data...');
+            const data = JSON.parse(event.target.result);
+            const response = await authService.importData(data);
+            toast.dismiss();
+
+            if (response.success) {
+              toast.success('Data imported successfully');
+              setTimeout(() => window.location.reload(), 1500);
+            }
+          } catch (error) {
+            toast.dismiss();
+            toast.error('Failed to import data: ' + (error.message || 'Invalid format'));
+          }
+        };
+        reader.readAsText(file);
       }
     };
     input.click();
@@ -154,7 +228,7 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
                   <select
                     value={settings.language}
-                    onChange={(e) => setSettings({...settings, language: e.target.value})}
+                    onChange={(e) => setSettings({ ...settings, language: e.target.value })}
                     className="input-field"
                   >
                     {languages.map(lang => (
@@ -167,7 +241,7 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Currency</label>
                   <select
                     value={settings.currency}
-                    onChange={(e) => setSettings({...settings, currency: e.target.value})}
+                    onChange={(e) => setSettings({ ...settings, currency: e.target.value })}
                     className="input-field"
                   >
                     {currencies.map(currency => (
@@ -180,7 +254,7 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Date Format</label>
                   <select
                     value={settings.dateFormat}
-                    onChange={(e) => setSettings({...settings, dateFormat: e.target.value})}
+                    onChange={(e) => setSettings({ ...settings, dateFormat: e.target.value })}
                     className="input-field"
                   >
                     <option value="dd/mm/yyyy">DD/MM/YYYY</option>
@@ -193,7 +267,7 @@ const Settings = () => {
                   <label className="block text-sm font-medium text-gray-700 mb-2">Time Format</label>
                   <select
                     value={settings.timeFormat}
-                    onChange={(e) => setSettings({...settings, timeFormat: e.target.value})}
+                    onChange={(e) => setSettings({ ...settings, timeFormat: e.target.value })}
                     className="input-field"
                   >
                     <option value="12h">12 Hour</option>
@@ -219,9 +293,8 @@ const Settings = () => {
                   style={{ backgroundColor: theme === 'dark' ? '#3B82F6' : '#D1D5DB' }}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
-                    }`}
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${theme === 'dark' ? 'translate-x-6' : 'translate-x-1'
+                      }`}
                   />
                 </button>
               </div>
@@ -233,7 +306,7 @@ const Settings = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Notification Preferences</h3>
-            
+
             <div className="space-y-4">
               {[
                 { key: 'emailNotifications', label: 'Email Notifications', description: 'Receive notifications via email' },
@@ -252,7 +325,7 @@ const Settings = () => {
                     <input
                       type="checkbox"
                       checked={settings[item.key]}
-                      onChange={(e) => setSettings({...settings, [item.key]: e.target.checked})}
+                      onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -267,7 +340,7 @@ const Settings = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Privacy Settings</h3>
-            
+
             <div className="space-y-4">
               {[
                 { key: 'dataSharing', label: 'Data Sharing', description: 'Share anonymized data to improve services' },
@@ -283,7 +356,7 @@ const Settings = () => {
                     <input
                       type="checkbox"
                       checked={settings[item.key]}
-                      onChange={(e) => setSettings({...settings, [item.key]: e.target.checked})}
+                      onChange={(e) => setSettings({ ...settings, [item.key]: e.target.checked })}
                       className="sr-only peer"
                     />
                     <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -298,7 +371,7 @@ const Settings = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Security Settings</h3>
-            
+
             <div className="space-y-4">
               <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                 <div>
@@ -319,7 +392,7 @@ const Settings = () => {
                   <input
                     type="checkbox"
                     checked={settings.biometric}
-                    onChange={(e) => setSettings({...settings, biometric: e.target.checked})}
+                    onChange={(e) => setSettings({ ...settings, biometric: e.target.checked })}
                     className="sr-only peer"
                   />
                   <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -330,7 +403,7 @@ const Settings = () => {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Session Timeout</label>
                 <select
                   value={settings.sessionTimeout}
-                  onChange={(e) => setSettings({...settings, sessionTimeout: e.target.value})}
+                  onChange={(e) => setSettings({ ...settings, sessionTimeout: e.target.value })}
                   className="input-field"
                 >
                   <option value="15">15 minutes</option>
@@ -348,7 +421,7 @@ const Settings = () => {
         return (
           <div className="space-y-6">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Data Management</h3>
-            
+
             <div className="space-y-4">
               <div className="p-4 border border-gray-200 rounded-lg">
                 <div className="flex items-center justify-between">
@@ -425,11 +498,10 @@ const Settings = () => {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
-                    activeTab === tab.id
-                      ? 'bg-blue-50 text-blue-700 border border-blue-100'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeTab === tab.id
+                    ? 'bg-blue-50 text-blue-700 border border-blue-100'
+                    : 'text-gray-700 hover:bg-gray-100'
+                    }`}
                 >
                   <Icon className="w-5 h-5 mr-3" />
                   {tab.label}

@@ -200,46 +200,128 @@ const Reports = () => {
         return;
       }
 
-      // Dynamic import for better bundle size
+      // Dynamic import to reduce bundle size
       const jsPDF = (await import('jspdf')).default;
       
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pdf = new jsPDF();
+      let yPosition = 20;
       
-      // Add header
+      // Header
       pdf.setFontSize(20);
-      pdf.text('Financial Reports', pageWidth / 2, 20, { align: 'center' });
+      pdf.setTextColor(40, 40, 40);
+      pdf.text('Financial Report', 20, yPosition);
+      yPosition += 20;
       
-      // Add date range
+      // Date range
       pdf.setFontSize(12);
-      pdf.text(`Period: ${dateRange.startDate} to ${dateRange.endDate}`, pageWidth / 2, 30, { align: 'center' });
+      pdf.setTextColor(80, 80, 80);
+      pdf.text(`Period: ${new Date(dateRange.startDate).toLocaleDateString()} - ${new Date(dateRange.endDate).toLocaleDateString()}`, 20, yPosition);
+      yPosition += 10;
+      pdf.text(`Generated: ${new Date().toLocaleDateString()}`, 20, yPosition);
+      yPosition += 20;
       
-      // Add summary
-      pdf.setFontSize(14);
-      pdf.text('Summary:', 20, 50);
-      pdf.setFontSize(12);
-      pdf.text(`Total Income: ${formatCurrency(reportData.summary.totalIncome)}`, 20, 60);
-      pdf.text(`Total Expenses: ${formatCurrency(reportData.summary.totalExpenses)}`, 20, 70);
-      pdf.text(`Net Income: ${formatCurrency(reportData.summary.netIncome)}`, 20, 80);
+      // Summary section
+      pdf.setFontSize(16);
+      pdf.setTextColor(40, 40, 40);
+      pdf.text('Summary', 20, yPosition);
+      yPosition += 15;
       
-      // Add monthly data if available
+      pdf.setFontSize(11);
+      pdf.setTextColor(60, 60, 60);
+      pdf.text(`Total Income: ${formatCurrency(reportData.summary.totalIncome)}`, 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Total Expenses: ${formatCurrency(reportData.summary.totalExpenses)}`, 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Net Income: ${formatCurrency(reportData.summary.netIncome)}`, 20, yPosition);
+      yPosition += 8;
+      pdf.text(`Avg Monthly Spending: ${formatCurrency(reportData.summary.avgMonthlySpending)}`, 20, yPosition);
+      yPosition += 20;
+      
+      // Monthly breakdown
       if (reportData.monthlyData.length > 0) {
-        pdf.text('Monthly Breakdown:', 20, 100);
-        let yPos = 110;
-        reportData.monthlyData.forEach((month) => {
-          pdf.text(`${month.month}: Income ${formatCurrency(month.income)}, Expenses ${formatCurrency(month.expenses)}`, 20, yPos);
-          yPos += 8;
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        
+        pdf.setFontSize(16);
+        pdf.setTextColor(40, 40, 40);
+        pdf.text('Monthly Breakdown', 20, yPosition);
+        yPosition += 15;
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(60, 60, 60);
+        
+        // Table headers
+        pdf.text('Month', 20, yPosition);
+        pdf.text('Income', 60, yPosition);
+        pdf.text('Expenses', 100, yPosition);
+        pdf.text('Net', 140, yPosition);
+        yPosition += 10;
+        
+        // Draw line under headers
+        pdf.line(20, yPosition - 2, 180, yPosition - 2);
+        
+        reportData.monthlyData.forEach(month => {
+          if (yPosition > 270) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          pdf.text(month.month, 20, yPosition);
+          pdf.text(formatCurrency(month.income), 60, yPosition);
+          pdf.text(formatCurrency(month.expenses), 100, yPosition);
+          pdf.text(formatCurrency(month.net), 140, yPosition);
+          yPosition += 8;
+        });
+        
+        yPosition += 10;
+      }
+      
+      // Category breakdown
+      if (reportData.categoryData.length > 0) {
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+        
+        pdf.setFontSize(16);
+        pdf.setTextColor(40, 40, 40);
+        pdf.text('Category Breakdown', 20, yPosition);
+        yPosition += 15;
+        
+        pdf.setFontSize(10);
+        pdf.setTextColor(60, 60, 60);
+        
+        // Table headers
+        pdf.text('Category', 20, yPosition);
+        pdf.text('Amount', 80, yPosition);
+        pdf.text('Percentage', 130, yPosition);
+        yPosition += 10;
+        
+        // Draw line under headers
+        pdf.line(20, yPosition - 2, 180, yPosition - 2);
+        
+        reportData.categoryData.forEach(category => {
+          if (yPosition > 270) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+          
+          pdf.text(category.name, 20, yPosition);
+          pdf.text(formatCurrency(category.value), 80, yPosition);
+          pdf.text(`${category.percentage}%`, 130, yPosition);
+          yPosition += 8;
         });
       }
       
-      // Save PDF
-      const fileName = `financial-report-${new Date().toISOString().split('T')[0]}.pdf`;
-      pdf.save(fileName);
+      // Save the PDF
+      pdf.save(`financial-report-${dateRange.startDate}-to-${dateRange.endDate}.pdf`);
+      toast.success('PDF exported successfully');
       
-      toast.success('PDF report downloaded successfully');
     } catch (error) {
       console.error('Error generating PDF:', error);
-      toast.error('Failed to generate PDF report');
+      toast.error('Failed to generate PDF');
     } finally {
       setLoading(false);
     }
@@ -258,56 +340,63 @@ const Reports = () => {
       // Dynamic import for better bundle size
       const XLSX = await import('xlsx');
       
+      // Create workbook
       const workbook = XLSX.utils.book_new();
       
-      // Summary data
+      // Summary sheet
       const summaryData = [
-        ['Financial Summary', ''],
-        ['Period', `${dateRange.startDate} to ${dateRange.endDate}`],
+        ['Financial Report Summary'],
+        ['Period', `${new Date(dateRange.startDate).toLocaleDateString()} - ${new Date(dateRange.endDate).toLocaleDateString()}`],
+        ['Generated', new Date().toLocaleDateString()],
+        [''],
+        ['Metric', 'Value'],
         ['Total Income', reportData.summary.totalIncome],
         ['Total Expenses', reportData.summary.totalExpenses],
         ['Net Income', reportData.summary.netIncome],
-        ['Average Monthly Spending', reportData.summary.avgMonthlySpending]
+        ['Avg Monthly Spending', reportData.summary.avgMonthlySpending]
       ];
       
       const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
       XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
       
-      // Monthly data sheet if available
+      // Monthly data sheet
       if (reportData.monthlyData.length > 0) {
-        const monthlyHeaders = ['Month', 'Income', 'Expenses', 'Net Income'];
-        const monthlyData = [monthlyHeaders, ...reportData.monthlyData.map(row => [
-          row.month,
-          row.income,
-          row.expenses,
-          row.net
-        ])];
+        const monthlyData = [
+          ['Month', 'Income', 'Expenses', 'Net'],
+          ...reportData.monthlyData.map(month => [
+            month.month,
+            month.income,
+            month.expenses,
+            month.net
+          ])
+        ];
         
         const monthlySheet = XLSX.utils.aoa_to_sheet(monthlyData);
         XLSX.utils.book_append_sheet(workbook, monthlySheet, 'Monthly Data');
       }
       
-      // Category data sheet if available
+      // Category data sheet
       if (reportData.categoryData.length > 0) {
-        const categoryHeaders = ['Category', 'Amount', 'Percentage'];
-        const categoryData = [categoryHeaders, ...reportData.categoryData.map(cat => [
-          cat.name,
-          cat.value,
-          cat.percentage
-        ])];
+        const categoryData = [
+          ['Category', 'Amount', 'Percentage'],
+          ...reportData.categoryData.map(category => [
+            category.name,
+            category.value,
+            category.percentage
+          ])
+        ];
         
         const categorySheet = XLSX.utils.aoa_to_sheet(categoryData);
         XLSX.utils.book_append_sheet(workbook, categorySheet, 'Categories');
       }
       
-      // Save Excel
-      const fileName = `financial-report-${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(workbook, fileName);
+      // Save the file
+      XLSX.writeFile(workbook, `financial-report-${dateRange.startDate}-to-${dateRange.endDate}.xlsx`);
+      toast.success('Excel file exported successfully');
       
-      toast.success('Excel report downloaded successfully');
     } catch (error) {
       console.error('Error generating Excel:', error);
-      toast.error('Failed to generate Excel report');
+      toast.error('Failed to generate Excel file');
     } finally {
       setLoading(false);
     }
@@ -320,25 +409,26 @@ const Reports = () => {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Financial Reports</h1>
           <p className="text-gray-600 mt-1">
-            Analyze your financial data with comprehensive reports
+            Analyze your financial data and export detailed reports
           </p>
         </div>
-        <div className="flex space-x-3 mt-4 sm:mt-0">
-          <button
-            onClick={exportToExcel}
-            disabled={loading}
-            className="btn-secondary inline-flex items-center"
-          >
-            <Download className="w-4 h-4 mr-2" />
-            Excel
-          </button>
+        
+        <div className="flex items-center space-x-3 mt-4 sm:mt-0">
           <button
             onClick={exportToPDF}
-            disabled={loading}
-            className="btn-primary inline-flex items-center"
+            disabled={loading || !hasData}
+            className="btn-secondary flex items-center"
           >
-            <FileText className="w-4 h-4 mr-2 -mt-px" />
-            {loading ? 'Generating...' : 'PDF Report'}
+            <FileText className="w-4 h-4 mr-2" />
+            {loading ? 'Exporting...' : 'Export PDF'}
+          </button>
+          <button
+            onClick={exportToExcel}
+            disabled={loading || !hasData}
+            className="btn-primary flex items-center"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            {loading ? 'Exporting...' : 'Export Excel'}
           </button>
         </div>
       </div>
@@ -349,44 +439,34 @@ const Reports = () => {
         animate={{ opacity: 1, y: 0 }}
         className="card"
       >
-        <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-4">
-          <div className="flex items-center space-x-2">
-            <Calendar className="w-5 h-5 text-gray-500" />
-            <span className="text-sm font-medium text-gray-700">Date Range:</span>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between">
+          <div className="flex items-center mb-4 sm:mb-0">
+            <Filter className="w-5 h-5 text-gray-400 mr-2" />
+            <h3 className="text-lg font-semibold text-gray-900">Date Range</h3>
           </div>
-          <div className="flex items-center space-x-2">
-            <input
-              type="date"
-              value={dateRange.startDate}
-              onChange={(e) => setDateRange({ ...dateRange, startDate: e.target.value })}
-              className="input-field text-sm h-10"
-              disabled={dataLoading}
-            />
+          
+          <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-3 sm:space-y-0 sm:space-x-4">
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                value={dateRange.startDate}
+                onChange={(e) => setDateRange({...dateRange, startDate: e.target.value})}
+                className="input-field"
+              />
+            </div>
             <span className="text-gray-500">to</span>
-            <input
-              type="date"
-              value={dateRange.endDate}
-              onChange={(e) => setDateRange({ ...dateRange, endDate: e.target.value })}
-              className="input-field text-sm h-10"
-              disabled={dataLoading}
-            />
+            <div className="flex items-center space-x-2">
+              <Calendar className="w-4 h-4 text-gray-400" />
+              <input
+                type="date"
+                value={dateRange.endDate}
+                onChange={(e) => setDateRange({...dateRange, endDate: e.target.value})}
+                className="input-field"
+              />
+            </div>
           </div>
-          <button
-            onClick={fetchReportData}
-            disabled={dataLoading}
-            className="btn-primary text-sm inline-flex items-center"
-          >
-            <Filter className="w-4 h-4 mr-2" />
-            {dataLoading ? 'Loading...' : 'Refresh Data'}
-          </button>
         </div>
-        {!hasData && !dataLoading && (
-          <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-            <p className="text-sm text-yellow-800">
-              💡 <strong>No data found for the selected period.</strong> Try adjusting the date range or add some transactions to see your financial reports.
-            </p>
-          </div>
-        )}
       </motion.div>
 
       {/* Summary Cards */}
@@ -394,6 +474,7 @@ const Reports = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
           className="card"
         >
           <div className="flex items-center justify-between">
@@ -412,7 +493,7 @@ const Reports = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+          transition={{ delay: 0.2 }}
           className="card"
         >
           <div className="flex items-center justify-between">
@@ -431,7 +512,7 @@ const Reports = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+          transition={{ delay: 0.3 }}
           className="card"
         >
           <div className="flex items-center justify-between">
@@ -446,7 +527,7 @@ const Reports = () => {
             <div className={`w-12 h-12 rounded-full flex items-center justify-center ${
               reportData.summary.netIncome >= 0 ? 'bg-green-500' : 'bg-red-500'
             }`}>
-              <BarChart3 className="w-2 h-6 text-white" />
+              <BarChart3 className="w-6 h-6 text-white" />
             </div>
           </div>
         </motion.div>
@@ -454,7 +535,7 @@ const Reports = () => {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+          transition={{ delay: 0.4 }}
           className="card"
         >
           <div className="flex items-center justify-between">
@@ -471,56 +552,7 @@ const Reports = () => {
         </motion.div>
       </div>
 
-      {/* Monthly Data Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="card"
-      >
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">
-          Monthly Breakdown
-        </h3>
-        {hasData && reportData.monthlyData.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Month</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Income</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Expenses</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Net</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reportData.monthlyData.map((month, index) => (
-                  <tr key={index} className="border-b border-gray-100">
-                    <td className="py-3 px-4 font-medium">{month.month}</td>
-                    <td className="py-3 px-4 text-green-600">{formatCurrency(month.income)}</td>
-                    <td className="py-3 px-4 text-red-600">{formatCurrency(month.expenses)}</td>
-                    <td className={`py-3 px-4 font-medium ${
-                      month.net >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      {formatCurrency(month.net)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        ) : (
-          <div className="text-center py-10">
-            <BarChart3 className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-            <p className="text-gray-500">
-              {dataLoading ? 'Loading monthly data...' : 'No transactions found for the selected period'}
-            </p>
-            <p className="text-sm text-gray-400 mt-2">
-              Add some transactions to see your monthly breakdown
-            </p>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Category Breakdown */}
+      {/* Category Overview */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -530,12 +562,12 @@ const Reports = () => {
           Expense Categories
         </h3>
         {hasData && reportData.categoryData.length > 0 ? (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {reportData.categoryData.map((category, index) => (
               <div key={category.name} className="flex items-center justify-between">
                 <div className="flex items-center">
-                  <div 
-                    className="w-4 h-4 rounded mr-3"
+                  <div
+                    className="w-4 h-4 rounded mr-2"
                     style={{ backgroundColor: COLORS[index % COLORS.length] }}
                   ></div>
                   <span className="text-sm font-medium text-gray-900">{category.name}</span>
@@ -667,6 +699,55 @@ const Reports = () => {
           )}
         </motion.div>
       </div>
+
+      {/* Monthly Data Table */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="card"
+      >
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Monthly Breakdown
+        </h3>
+        {hasData && reportData.monthlyData.length > 0 ? (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b border-gray-200">
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Month</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Income</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Expenses</th>
+                  <th className="text-left py-3 px-4 font-medium text-gray-700">Net</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reportData.monthlyData.map((month, index) => (
+                  <tr key={index} className="border-b border-gray-100">
+                    <td className="py-3 px-4 font-medium">{month.month}</td>
+                    <td className="py-3 px-4 text-green-600">{formatCurrency(month.income)}</td>
+                    <td className="py-3 px-4 text-red-600">{formatCurrency(month.expenses)}</td>
+                    <td className={`py-3 px-4 font-medium ${
+                      month.net >= 0 ? 'text-green-600' : 'text-red-600'
+                    }`}>
+                      {formatCurrency(month.net)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <div className="text-center py-10">
+            <FileText className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+            <p className="text-gray-500">
+              {dataLoading ? 'Loading monthly data...' : 'No monthly data available for the selected period'}
+            </p>
+            <p className="text-sm text-gray-400 mt-2">
+              Add some transactions to see your monthly breakdown
+            </p>
+          </div>
+        )}
+      </motion.div>
     </div>
   );
 };

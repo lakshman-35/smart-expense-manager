@@ -57,6 +57,26 @@ const authService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Export user data
+  exportData: async () => {
+    try {
+      const response = await api.get('/auth/export');
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  },
+
+  // Import user data
+  importData: async (data) => {
+    try {
+      const response = await api.post('/auth/import', data);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

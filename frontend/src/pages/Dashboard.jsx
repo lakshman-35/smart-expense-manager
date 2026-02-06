@@ -387,50 +387,9 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        {/* Goals Progress */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="card"
-        >
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
-              Savings Goals
-            </h3>
-            <button className="text-blue-600 hover:text-blue-700 text-sm font-medium">
-              Manage
-            </button>
-          </div>
-          <div className="space-y-6">
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">Emergency Fund</span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">$2,500 / $5,000</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-blue-600 h-2 rounded-full" style={{ width: '50%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">Vacation</span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">$800 / $2,000</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-green-600 h-2 rounded-full" style={{ width: '40%' }}></div>
-              </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-gray-900 dark:text-white">New Car</span>
-                <span className="text-sm text-gray-600 dark:text-gray-400">$15,000 / $25,000</span>
-              </div>
-              <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                <div className="bg-purple-600 h-2 rounded-full" style={{ width: '60%' }}></div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
+       
+        
+          
       </div>
     </div>
   );
