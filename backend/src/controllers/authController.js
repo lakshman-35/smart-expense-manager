@@ -1,4 +1,7 @@
 import User from '../models/User.js';
+import Budget from '../models/Budget.js';
+import Transaction from '../models/Transaction.js';
+import Goal from '../models/Goal.js';
 import { generateToken } from '../middlewares/auth.js';
 import { validationResult } from 'express-validator';
 
@@ -143,7 +146,7 @@ export const logout = async (req, res) => {
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    
+
     res.status(200).json({
       success: true,
       user: {
@@ -169,7 +172,18 @@ export const getProfile = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name, currency, theme, notifications, monthlyBudget } = req.body;
+    const {
+      name,
+      currency,
+      theme,
+      notifications,
+      monthlyBudget,
+      language,
+      dateFormat,
+      timeFormat,
+      privacy,
+      security
+    } = req.body;
 
     const user = await User.findByIdAndUpdate(
       req.user._id,
@@ -178,7 +192,12 @@ export const updateProfile = async (req, res) => {
         ...(currency && { currency }),
         ...(theme && { theme }),
         ...(notifications && { notifications }),
-        ...(monthlyBudget !== undefined && { monthlyBudget })
+        ...(monthlyBudget !== undefined && { monthlyBudget }),
+        ...(language && { language }),
+        ...(dateFormat && { dateFormat }),
+        ...(timeFormat && { timeFormat }),
+        ...(privacy && { privacy }),
+        ...(security && { security })
       },
       { new: true, runValidators: true }
     );
@@ -194,8 +213,85 @@ export const updateProfile = async (req, res) => {
         currency: user.currency,
         theme: user.theme,
         notifications: user.notifications,
-        monthlyBudget: user.monthlyBudget
+        monthlyBudget: user.monthlyBudget,
+        language: user.language,
+        dateFormat: user.dateFormat,
+        timeFormat: user.timeFormat,
+        privacy: user.privacy,
+        security: user.security
       }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const exportData = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const budgets = await Budget.find({ user: req.user._id });
+    const transactions = await Transaction.find({ user: req.user._id });
+    const goals = await Goal.find({ user: req.user._id });
+
+    const data = {
+      version: 1,
+      timestamp: new Date().toISOString(),
+      user: {
+        ...user.toObject(),
+        password: undefined // Don't export password
+      },
+      budgets,
+      transactions,
+      goals
+    };
+
+    res.status(200).json({
+      success: true,
+      data
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
+export const importData = async (req, res) => {
+  try {
+    const { budgets, transactions, goals } = req.body;
+    const userId = req.user._id;
+
+    if (budgets && Array.isArray(budgets)) {
+      const newBudgets = budgets.map(b => {
+        const { _id, user, createdAt, updatedAt, ...rest } = b;
+        return { ...rest, user: userId };
+      });
+      if (newBudgets.length > 0) await Budget.insertMany(newBudgets);
+    }
+
+    if (goals && Array.isArray(goals)) {
+      const newGoals = goals.map(g => {
+        const { _id, user, createdAt, updatedAt, ...rest } = g;
+        return { ...rest, user: userId };
+      });
+      if (newGoals.length > 0) await Goal.insertMany(newGoals);
+    }
+
+    if (transactions && Array.isArray(transactions)) {
+      const newTransactions = transactions.map(t => {
+        const { _id, user, createdAt, updatedAt, ...rest } = t;
+        return { ...rest, user: userId };
+      });
+      if (newTransactions.length > 0) await Transaction.insertMany(newTransactions);
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Data imported successfully'
     });
   } catch (error) {
     res.status(500).json({

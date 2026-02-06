@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
       password: 'kanakala@123'
     });
 
-    // 2️⃣ Create a test budget
+    
     await Budget.create({
       user: user._id,
       name: 'Food Budget',
@@ -25,7 +25,7 @@ router.get('/', async (req, res) => {
       endDate: new Date(new Date().setMonth(new Date().getMonth() + 1))
     });
 
-    // 3️⃣ Create a test goal
+    
     await Goal.create({
       user: user._id,
       name: 'Vacation Fund',
@@ -33,7 +33,7 @@ router.get('/', async (req, res) => {
       targetDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1))
     });
 
-    // 4️⃣ Create a test transaction
+    
     await Transaction.create({
       user: user._id,
       amount: 200,
