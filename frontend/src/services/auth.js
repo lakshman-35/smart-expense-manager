@@ -77,6 +77,17 @@ const authService = {
     } catch (error) {
       throw error;
     }
+  },
+
+  // Delete user account
+  deleteAccount: async () => {
+    try {
+      const response = await api.delete('/auth/delete-account');
+      localStorage.removeItem('token');
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 };
 

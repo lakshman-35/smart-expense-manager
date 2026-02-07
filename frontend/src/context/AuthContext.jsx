@@ -58,7 +58,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await authService.login(credentials);
-      
+
       if (response.success) {
         dispatch({ type: 'SET_USER', payload: response.user });
         toast.success(`Welcome back, ${response.user.name}!`);
@@ -80,7 +80,7 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: 'SET_LOADING', payload: true });
       const response = await authService.register(userData);
-      
+
       if (response.success) {
         // Do NOT log the user in automatically after register
         dispatch({ type: 'SET_LOADING', payload: false });
@@ -113,7 +113,7 @@ export const AuthProvider = ({ children }) => {
   const updateProfile = async (profileData) => {
     try {
       const response = await authService.updateProfile(profileData);
-      
+
       if (response.success) {
         dispatch({ type: 'SET_USER', payload: response.user });
         toast.success('Profile updated successfully');
@@ -129,12 +129,29 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const deleteAccount = async () => {
+    try {
+      const response = await authService.deleteAccount();
+      if (response.success) {
+        dispatch({ type: 'LOGOUT' });
+        toast.success('Account deleted successfully');
+        return true;
+      }
+      return false;
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'Failed to delete account';
+      toast.error(errorMessage);
+      return false;
+    }
+  };
+
   const value = {
     ...state,
     login,
     register,
     logout,
     updateProfile,
+    deleteAccount,
     checkAuthStatus
   };
 
