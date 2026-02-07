@@ -1,23 +1,22 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { 
-  Bell, 
-  Search, 
-  User, 
-  Settings, 
-  LogOut, 
+import {
+  Bell,
+  Search,
+  User,
+  Settings,
+  LogOut,
   Menu,
   X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 
-const Navbar = () => {
+const Navbar = ({ onMenuClick, isSidebarOpen }) => {
   const { user, logout } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
   const [showProfileMenu, setShowProfileMenu] = useState(false);
-  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   const handleLogout = async () => {
     await logout();
@@ -25,17 +24,18 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="fixed top-0 right-0 left-0 lg:left-64 z-40 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm">
+    <nav className="sticky top-0 right-0 left-0 lg:left-64 z-30 bg-white/80 backdrop-blur-md border-b border-gray-200 shadow-sm transition-all duration-300">
       <div className="px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center">
             <button
-              onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="p-2 rounded-lg text-gray-600 hover:bg-gray-100 lg:hidden"
+              onClick={onMenuClick}
+              className="p-2 -ml-2 mr-2 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-gray-900 lg:hidden focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500 transition-colors"
+              aria-label="Toggle menu"
             >
-              {showMobileMenu ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+              {isSidebarOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
-            
+
             <div className="hidden md:flex items-center space-x-4 ml-4">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -50,7 +50,7 @@ const Navbar = () => {
 
           <div className="flex items-center space-x-3">
             {/* Theme Toggle */}
-            
+
 
             {/* Notifications */}
             <button className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors relative">

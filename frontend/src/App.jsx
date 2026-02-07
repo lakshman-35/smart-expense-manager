@@ -26,6 +26,8 @@ function App() {
   const { user, loading, checkAuthStatus } = useAuth();
   const { theme } = useTheme();
 
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   useEffect(() => {
     checkAuthStatus();
   }, []);
@@ -42,9 +44,9 @@ function App() {
     <div className="min-h-screen bg-gray-50">
       {user ? (
         <div className="flex">
-          <Sidebar />
-          <div className="flex-1 lg:ml-64">
-            <Navbar />
+          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+          <div className="flex-1 lg:ml-64 min-w-0">
+            <Navbar onMenuClick={() => setIsSidebarOpen(!isSidebarOpen)} isSidebarOpen={isSidebarOpen} />
             <main className="pt-20 md:pt-24 pb-6 px-4 sm:px-6 lg:px-8">
               <Routes>
                 <Route path="/" element={<Navigate to="/dashboard" replace />} />
