@@ -7,13 +7,23 @@ dotenv.config();
 
 const PORT = process.env.PORT || 5000;
 
-// Connect to database
-connectDB();
+// Validate required environment variables
+const requiredEnvVars = ['MONGODB_URI', 'JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(key => !process.env[key]);
+
+if (missingEnvVars.length > 0) {
+  console.error('❌ FATAL ERROR: Missing required environment variables:');
+  missingEnvVars.forEach(key => console.error(`   - ${key}`));
+  process.exit(1);
+}
+
+// Connect to database first
+await connectDB();
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(` Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
-  console.log(` Smart Expense Tracker API ready!`);
+  console.log(`✅ Server running on port ${PORT} in ${process.env.NODE_ENV} mode`);
+  console.log(`✅ Smart Expense Tracker API ready!`);
 });
 
 // Handle unhandled promise rejections
