@@ -38,16 +38,25 @@ const limiter = rateLimit({
 });
 
 // CORS configuration
-const allowedOrigins = [
-  process.env.FRONTEND_URL,
-  'http://localhost:5173',
-  'http://localhost:3000'
-].filter(Boolean);
+// CORS configuration
+const isAllowedOrigin = (origin) => {
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://localhost:3000'
+  ].filter(Boolean);
+
+  return (
+    !origin ||
+    allowedOrigins.includes(origin) ||
+    origin.endsWith('.vercel.app') ||
+    origin.endsWith('.onrender.com')
+  );
+};
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (e.g., mobile apps, curl) or allowed list
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
@@ -59,8 +68,8 @@ app.use(cors({
 // Ensure CORS headers are present on all responses (including errors)
 app.use((req, res, next) => {
   const requestOrigin = req.headers.origin;
-  if (!requestOrigin || allowedOrigins.includes(requestOrigin)) {
-    res.header('Access-Control-Allow-Origin', requestOrigin || '*');
+  if (isAllowedOrigin(requestOrigin)) {
+    res.header('Access-Control-Allow-Origin', requestOrigin);
     res.header('Vary', 'Origin');
   }
   res.header('Access-Control-Allow-Credentials', 'true');
@@ -75,7 +84,7 @@ app.use((req, res, next) => {
 // Handle preflight for all routes with same CORS policy
 app.options('*', cors({
   origin: function (origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
+    if (isAllowedOrigin(origin)) {
       return callback(null, true);
     }
     return callback(new Error('Not allowed by CORS'));
