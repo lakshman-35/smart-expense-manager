@@ -37,6 +37,15 @@ const limiter = rateLimit({
   }
 });
 
+// Debug logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.originalUrl}`);
+  next();
+});
+
+// Apply limiter after CORS so blocked responses still carry CORS headers
+app.use(limiter);
+
 // CORS configuration
 // CORS configuration
 const isAllowedOrigin = (origin) => {

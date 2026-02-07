@@ -7,7 +7,8 @@ import {
   getProfile,
   updateProfile,
   exportData,
-  importData
+  importData,
+  deleteAccount
 } from '../controllers/authController.js';
 import { protect } from '../middlewares/auth.js';
 
@@ -41,6 +42,7 @@ const loginValidation = [
 router.post('/register', registerValidation, register);
 router.post('/login', loginValidation, login);
 router.post('/logout', logout);
+router.delete('/delete-account', protect, deleteAccount);
 router.get('/profile', protect, getProfile);
 router.put('/profile', protect, updateProfile);
 router.get('/export', protect, exportData);

@@ -143,6 +143,43 @@ export const logout = async (req, res) => {
   }
 };
 
+export const deleteAccount = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
+
+    // Delete related data
+    await Transaction.deleteMany({ user: user._id });
+    await Budget.deleteMany({ user: user._id });
+    await Goal.deleteMany({ user: user._id });
+
+    // Delete user
+    await User.findByIdAndDelete(user._id);
+
+    // Clear cookie
+    res.cookie('jwt', '', {
+      httpOnly: true,
+      expires: new Date(0)
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Account deleted successfully'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 export const getProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
